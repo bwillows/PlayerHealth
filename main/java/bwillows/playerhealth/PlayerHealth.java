@@ -5,6 +5,7 @@ import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -23,20 +24,23 @@ public final class PlayerHealth extends JavaPlugin implements Listener {
         Bukkit.getPluginManager().registerEvents(this, plugin);
     }
 
+    public void updateHealth(Player player) {
+        Scoreboard board = player.getScoreboard();
+
+        Objective healthDisplay = board.getObjective("healthDisplay");
+        if(healthDisplay == null) {
+            healthDisplay = board.registerNewObjective("healthDisplay", "placeholder");
+            healthDisplay.setDisplaySlot(DisplaySlot.BELOW_NAME);
+            healthDisplay.setDisplayName(ChatColor.RED + "❤");
+        }
+        Score score = healthDisplay.getScore(player.getName());
+        score.setScore((int) player.getHealth());
+    }
+
     public void startUpdatingScoreboard(Player player) {
         Bukkit.getScheduler().runTaskTimer(this, () -> {
-            Scoreboard board = player.getScoreboard();
-
-            Objective healthDisplay = board.getObjective("healthDisplay");
-            if(healthDisplay == null) {
-                healthDisplay = board.registerNewObjective("healthDisplay", "placeholder");
-                healthDisplay.setDisplaySlot(DisplaySlot.BELOW_NAME);
-                healthDisplay.setDisplayName(ChatColor.RED + "❤");
-            }
-            Score score = healthDisplay.getScore(player.getName());
-            score.setScore((int) player.getHealth());
-
-        }, 0L, 20L); // 20L = 1 second
+            updateHealth(player);
+        }, 0L, 5L); // 20L = 1 second
     }
 
     public void createScoreboard(Player player) {
@@ -49,6 +53,14 @@ public final class PlayerHealth extends JavaPlugin implements Listener {
         Player player = event.getPlayer();
         createScoreboard(player);
         startUpdatingScoreboard(player);
+    }
+
+    @EventHandler
+    public void entityDamageEvent(EntityDamageEvent event) {
+        if(!(event.getEntity() instanceof Player))
+            return;
+
+        updateHealth((Player) event.getEntity());
     }
 
     @Override
